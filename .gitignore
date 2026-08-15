@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite
+*.sqlite3
+*.db
+.pytest_cache/
+.ruff_cache/
+.agent/
+.env
+.env.*
+data/
+backups/
+exports/
+health-export*
+raw-export*

@@ -1,0 +1,39 @@
+{
+  "dataPoints": [
+    {
+      "dataSource": {
+        "recordingMethod": "PASSIVELY_MEASURED",
+        "platform": "FITBIT"
+      },
+      "steps": {
+        "interval": {
+          "startTime": "2024-03-09T23:00:00Z",
+          "startUtcOffset": "0s",
+          "endTime": "2024-03-09T23:01:00Z",
+          "endUtcOffset": "0s",
+          "civilStartTime": {"date": {"year": 2024, "month": 3, "day": 9}, "time": {"hours": 23, "minutes": 0}},
+          "civilEndTime": {"date": {"year": 2024, "month": 3, "day": 9}, "time": {"hours": 23, "minutes": 1}}
+        },
+        "count": "40"
+      }
+    },
+    {
+      "dataSource": {
+        "recordingMethod": "PASSIVELY_MEASURED",
+        "platform": "FITBIT"
+      },
+      "steps": {
+        "interval": {
+          "startTime": "2024-03-10T07:30:00Z",
+          "startUtcOffset": "0s",
+          "endTime": "2024-03-10T07:31:00Z",
+          "endUtcOffset": "0s",
+          "civilStartTime": {"date": {"year": 2024, "month": 3, "day": 10}, "time": {"hours": 7, "minutes": 30}},
+          "civilEndTime": {"date": {"year": 2024, "month": 3, "day": 10}, "time": {"hours": 7, "minutes": 31}}
+        },
+        "count": "0"
+      }
+    }
+  ],
+  "nextPageToken": "synthetic-page-token-2"
+}

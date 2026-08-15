@@ -1,0 +1,9 @@
+{
+  "name": "Personal AI Health Coach",
+  "build": {"dockerfile": "Dockerfile"},
+  "remoteUser": "vscode",
+  "postCreateCommand": "uv sync --dev --frozen",
+  "customizations": {
+    "vscode": {"extensions": ["charliermarsh.ruff", "ms-python.python"]}
+  }
+}

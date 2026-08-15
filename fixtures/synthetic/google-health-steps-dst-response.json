@@ -1,0 +1,27 @@
+{
+  "dataPoints": [
+    {
+      "dataSource": {
+        "platform": "FITBIT",
+        "recordingMethod": "PASSIVELY_MEASURED"
+      },
+      "steps": {
+        "count": "12",
+        "interval": {
+          "startTime": "2024-03-10T06:59:00Z",
+          "endTime": "2024-03-10T07:01:00Z",
+          "startUtcOffset": "-18000s",
+          "endUtcOffset": "-14400s",
+          "civilStartTime": {
+            "date": {"year": 2024, "month": 3, "day": 10},
+            "time": {"hours": 1, "minutes": 59}
+          },
+          "civilEndTime": {
+            "date": {"year": 2024, "month": 3, "day": 10},
+            "time": {"hours": 3, "minutes": 1}
+          }
+        }
+      }
+    }
+  ]
+}
