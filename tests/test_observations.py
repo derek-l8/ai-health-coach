@@ -10,7 +10,11 @@ from pathlib import Path
 import pytest
 
 from ai_health_coach.observations import MetricObservation, ObservationValidationError
-from ai_health_coach.storage import DuplicateObservationConflictError, ObservationStore
+from ai_health_coach.storage import (
+    DuplicateObservationConflictError,
+    ObservationStore,
+    StoreSchemaVersionError,
+)
 
 FIXTURE_PATH = Path("fixtures/synthetic/metric-observations.json")
 
@@ -112,6 +116,52 @@ def test_existing_database_adds_nullable_source_metadata_columns(
     assert row["recording_method"] is None
     assert row["device_manufacturer"] is None
     assert row["device_display_name"] is None
+
+
+def test_existing_database_migration_records_schema_version(tmp_path: Path) -> None:
+    database = tmp_path / "legacy.sqlite3"
+    connection = sqlite3.connect(database)
+    connection.execute(
+        """
+        CREATE TABLE metric_observation (
+            id INTEGER PRIMARY KEY,
+            source TEXT NOT NULL,
+            source_observation_id TEXT NOT NULL,
+            metric_type TEXT NOT NULL,
+            interval_start TEXT NOT NULL,
+            interval_end TEXT NOT NULL,
+            value REAL,
+            unit TEXT,
+            timezone TEXT NOT NULL,
+            quality_status TEXT NOT NULL,
+            UNIQUE(source, source_observation_id)
+        )
+        """
+    )
+    connection.close()
+
+    store = ObservationStore(database)
+
+    assert store.connection.execute("PRAGMA user_version").fetchone()[0] == 1
+
+
+def test_newer_database_schema_is_rejected_without_modification(tmp_path: Path) -> None:
+    database = tmp_path / "future.sqlite3"
+    connection = sqlite3.connect(database)
+    connection.execute("PRAGMA user_version = 2")
+    connection.close()
+
+    with pytest.raises(StoreSchemaVersionError, match="newer than supported"):
+        ObservationStore(database)
+
+    connection = sqlite3.connect(database)
+    assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+    assert (
+        connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+        ).fetchall()
+        == []
+    )
 
 
 @pytest.mark.parametrize("invalid_value", [float("nan"), float("inf"), float("-inf")])

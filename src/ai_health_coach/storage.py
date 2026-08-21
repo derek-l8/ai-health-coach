@@ -13,62 +13,82 @@ class DuplicateObservationConflictError(ValueError):
     """Raised when an identifier is replayed with a different payload."""
 
 
+class StoreSchemaVersionError(RuntimeError):
+    """Raised when a database was created by unsupported newer code."""
+
+
 class ObservationStore:
     """Own a SQLite connection and idempotently ingest normalized observations."""
+
+    SCHEMA_VERSION = 1
 
     def __init__(self, database: Path | str = ":memory:") -> None:
         self.connection = sqlite3.connect(database)
         self.connection.row_factory = sqlite3.Row
-        self._initialize()
+        try:
+            self._initialize()
+        except BaseException:
+            self.connection.close()
+            raise
 
     def _initialize(self) -> None:
-        self.connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS metric_observation (
-                id INTEGER PRIMARY KEY,
-                source TEXT NOT NULL,
-                source_observation_id TEXT NOT NULL,
-                metric_type TEXT NOT NULL,
-                interval_start TEXT NOT NULL,
-                interval_end TEXT NOT NULL,
-                value REAL,
-                unit TEXT,
-                timezone TEXT NOT NULL,
-                quality_status TEXT NOT NULL,
-                source_platform TEXT,
-                recording_method TEXT,
-                device_manufacturer TEXT,
-                device_display_name TEXT,
-                UNIQUE(source, source_observation_id)
-            )
-            """
-        )
-        columns = {
-            row[1]
-            for row in self.connection.execute("PRAGMA table_info(metric_observation)")
-        }
-        if "source_platform" not in columns:
+        self.connection.execute("BEGIN IMMEDIATE")
+        try:
+            version = self.connection.execute("PRAGMA user_version").fetchone()[0]
+            if version > self.SCHEMA_VERSION:
+                raise StoreSchemaVersionError(
+                    f"database schema version {version} is newer than supported "
+                    f"version {self.SCHEMA_VERSION}"
+                )
             self.connection.execute(
-                "ALTER TABLE metric_observation ADD COLUMN source_platform TEXT"
+                """
+                CREATE TABLE IF NOT EXISTS metric_observation (
+                    id INTEGER PRIMARY KEY,
+                    source TEXT NOT NULL,
+                    source_observation_id TEXT NOT NULL,
+                    metric_type TEXT NOT NULL,
+                    interval_start TEXT NOT NULL,
+                    interval_end TEXT NOT NULL,
+                    value REAL,
+                    unit TEXT,
+                    timezone TEXT NOT NULL,
+                    quality_status TEXT NOT NULL,
+                    source_platform TEXT,
+                    recording_method TEXT,
+                    device_manufacturer TEXT,
+                    device_display_name TEXT,
+                    UNIQUE(source, source_observation_id)
+                )
+                """
             )
-        if "recording_method" not in columns:
-            self.connection.execute(
-                "ALTER TABLE metric_observation ADD COLUMN recording_method TEXT"
-            )
-        if "device_manufacturer" not in columns:
-            self.connection.execute(
-                "ALTER TABLE metric_observation ADD COLUMN device_manufacturer TEXT"
-            )
-        if "device_display_name" not in columns:
-            self.connection.execute(
-                "ALTER TABLE metric_observation ADD COLUMN device_display_name TEXT"
-            )
-        self.connection.commit()
+            columns = {
+                row[1]
+                for row in self.connection.execute(
+                    "PRAGMA table_info(metric_observation)"
+                )
+            }
+            for column in (
+                "source_platform",
+                "recording_method",
+                "device_manufacturer",
+                "device_display_name",
+            ):
+                if column not in columns:
+                    self.connection.execute(
+                        f"ALTER TABLE metric_observation ADD COLUMN {column} TEXT"
+                    )
+            self.connection.execute(f"PRAGMA user_version = {self.SCHEMA_VERSION}")
+        except BaseException:
+            self.connection.rollback()
+            raise
+        else:
+            self.connection.commit()
 
     def ingest(self, observations: Iterable[MetricObservation]) -> int:
         """Atomically insert a batch, accepting only equivalent replays."""
         batch = list(observations)
-        with self.connection:
+        self.connection.execute("BEGIN IMMEDIATE")
+        try:
             before = self.connection.total_changes
             for observation in batch:
                 existing = self.connection.execute(
@@ -113,7 +133,13 @@ class ObservationStore:
                         observation.device_display_name,
                     ),
                 )
-            return self.connection.total_changes - before
+            inserted = self.connection.total_changes - before
+        except BaseException:
+            self.connection.rollback()
+            raise
+        else:
+            self.connection.commit()
+            return inserted
 
     @staticmethod
     def _matches_existing(
