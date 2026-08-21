@@ -14,11 +14,18 @@ It is not a diagnostic device, emergency monitor, or source of emergency care.
 - Canonical SQLite observation storage with provenance, units, offset-aware
   timestamps, IANA timezones, DST checks, explicit missingness, atomic batches,
   conflict detection, and idempotent replay.
+- Formula-neutral immutable contracts and transactional persistence for separate
+  Efficiency, Recovery, and predicted Energy score snapshots, including source
+  evidence, missing inputs, confidence, completeness, and version provenance.
+- Immutable daily feedback with nullable 1–10 ratings, timezone-aware submission
+  context, and a database-enforced prediction-before-feedback relationship.
+- Immutable nightly scoring contexts preserving separate score identities, local
+  date, DST-valid sleep windows, and the input cutoff used for late-arrival safety.
 - Synthetic fixtures, automated regression tests, and a synthetic smoke command.
 
-No live health data is collected, no web dashboard is served, and no AI model is
-called by this version. The current code is the reliable data foundation, not a
-finished health application.
+No sleep formulas are implemented, no live health data is collected, no web
+dashboard is served, and no AI model is called by this version. The current code
+is the reliable data foundation, not a finished health application.
 
 ## Requirements
 
