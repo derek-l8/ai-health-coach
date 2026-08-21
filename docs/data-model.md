@@ -10,10 +10,15 @@ transitions. Blank device metadata is rejected.
 `ObservationStore` writes a batch in one SQLite transaction. The pair `(source,
 source_observation_id)` is unique. Exact replays are no-ops; a replay with any
 different canonical field raises a conflict and rolls back the batch. Existing
-databases gain nullable provenance columns without changing older rows. When a
-provider point lacks an explicit observation name, generated identity includes
-platform, recording method, canonical device identity, and absolute interval so
-otherwise identical observations from different devices cannot collide.
+databases gain nullable provenance columns without changing older rows. Schema
+changes and their version marker are committed atomically; a database marked with
+a newer schema version is rejected instead of being changed by older code. Write
+batches acquire the SQLite write reservation before checking replay identities so
+concurrent retry processes cannot race between conflict detection and insertion.
+When a provider point lacks an explicit observation name, generated identity
+includes platform, recording method, canonical device identity, and absolute
+interval so otherwise identical observations from different devices cannot
+collide.
 
 ## Planned records
 
