@@ -1,9 +1,9 @@
 # Sleep scoring plan
 
 Sleep scoring is the first planned analysis module. Its validated immutable result
-contract and transactional persistence are implemented; formulas and provider sleep
-ingestion are not. The module produces three separate scores and never an overall
-composite:
+contract, transactional persistence, and deterministic heuristic formulas are
+implemented; live provider sleep ingestion is not. The module produces three
+separate scores and never an overall composite:
 
 - **Efficiency** estimates how effectively time in bed became useful sleep, using
   duration, time in bed, awakenings, and related deterministic measurements.

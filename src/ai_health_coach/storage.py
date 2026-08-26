@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from ai_health_coach.observations import MetricObservation
+from ai_health_coach.provider_scores import ProviderScoreComparison
 from ai_health_coach.sleep_context import NightlyScoringContext
 from ai_health_coach.sleep_feedback import DailySleepFeedback
 from ai_health_coach.sleep_scores import SleepScore
@@ -38,6 +39,10 @@ class InvalidSleepContextScoresError(ValueError):
     """Raised when a context does not reference its three expected score types."""
 
 
+class DuplicateProviderComparisonConflictError(ValueError):
+    """Raised when a provider comparison identifier is replayed differently."""
+
+
 class StoreSchemaVersionError(RuntimeError):
     """Raised when a database was created by unsupported newer code."""
 
@@ -45,7 +50,7 @@ class StoreSchemaVersionError(RuntimeError):
 class ObservationStore:
     """Store canonical observations and formula-neutral sleep-score snapshots."""
 
-    SCHEMA_VERSION = 4
+    SCHEMA_VERSION = 5
 
     def __init__(self, database: Path | str = ":memory:") -> None:
         self.connection = sqlite3.connect(database)
@@ -254,6 +259,34 @@ class ObservationStore:
                 BEFORE UPDATE ON sleep_score
                 BEGIN
                     SELECT RAISE(ABORT, 'sleep score snapshots are immutable');
+                END
+                """
+            )
+            self.connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS provider_score_comparison (
+                    id INTEGER PRIMARY KEY,
+                    comparison_id TEXT NOT NULL UNIQUE,
+                    provider TEXT NOT NULL,
+                    score_label TEXT NOT NULL,
+                    value REAL,
+                    unit TEXT,
+                    local_date TEXT NOT NULL,
+                    timezone TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    source_observation_id TEXT
+                )
+                """
+            )
+            self.connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS prevent_provider_comparison_update
+                BEFORE UPDATE ON provider_score_comparison
+                BEGIN
+                    SELECT RAISE(
+                        ABORT,
+                        'provider score comparisons are immutable'
+                    );
                 END
                 """
             )
@@ -578,6 +611,65 @@ class ObservationStore:
         """Return feedback snapshots in deterministic insertion order."""
         return list(
             self.connection.execute("SELECT * FROM daily_sleep_feedback ORDER BY id")
+        )
+
+    def store_provider_comparisons(
+        self, comparisons: Iterable[ProviderScoreComparison]
+    ) -> int:
+        """Atomically store labeled provider comparisons with idempotent replay."""
+        batch = list(comparisons)
+        payloads = [self._provider_comparison_payload(item) for item in batch]
+        self.connection.execute("BEGIN IMMEDIATE")
+        try:
+            before = self.connection.total_changes
+            for comparison, payload in zip(batch, payloads, strict=True):
+                existing = self.connection.execute(
+                    "SELECT * FROM provider_score_comparison WHERE comparison_id = ?",
+                    (comparison.comparison_id,),
+                ).fetchone()
+                if existing is not None:
+                    if all(existing[key] == value for key, value in payload.items()):
+                        continue
+                    raise DuplicateProviderComparisonConflictError(
+                        "conflicting payload for existing provider score comparison"
+                    )
+                columns = ", ".join(payload)
+                placeholders = ", ".join("?" for _ in payload)
+                self.connection.execute(
+                    f"INSERT INTO provider_score_comparison ({columns}) "
+                    f"VALUES ({placeholders})",
+                    tuple(payload.values()),
+                )
+            inserted = self.connection.total_changes - before
+        except BaseException:
+            self.connection.rollback()
+            raise
+        else:
+            self.connection.commit()
+            return inserted
+
+    @staticmethod
+    def _provider_comparison_payload(
+        comparison: ProviderScoreComparison,
+    ) -> dict[str, object]:
+        return {
+            "comparison_id": comparison.comparison_id,
+            "provider": comparison.provider,
+            "score_label": comparison.score_label,
+            "value": comparison.value,
+            "unit": comparison.unit,
+            "local_date": comparison.local_date.isoformat(),
+            "timezone": comparison.timezone,
+            "recorded_at": comparison.recorded_at.isoformat(),
+            "source_observation_id": comparison.source_observation_id,
+        }
+
+    def all_provider_comparisons(self) -> list[sqlite3.Row]:
+        """Return labeled provider comparisons in insertion order."""
+        return list(
+            self.connection.execute(
+                "SELECT * FROM provider_score_comparison ORDER BY id"
+            )
         )
 
     def close(self) -> None:

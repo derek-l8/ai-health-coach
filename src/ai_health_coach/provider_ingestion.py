@@ -10,6 +10,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from ai_health_coach.observations import MetricObservation, ObservationValidationError
+from ai_health_coach.sleep_metrics import SUPPORTED_SLEEP_METRICS
 from ai_health_coach.storage import ObservationStore
 
 SYNTHETIC_SOURCE = "synthetic-google-health"
@@ -166,6 +167,27 @@ def _generated_steps_identifier(
     return f"generated-steps-{sha256(identity.encode()).hexdigest()}"
 
 
+def _generated_metric_identifier(
+    metric_type: str,
+    platform: str,
+    recording_method: str,
+    device_manufacturer: str | None,
+    device_display_name: str | None,
+    start: datetime,
+    end: datetime,
+) -> str:
+    identity_parts = [metric_type, platform, recording_method]
+    if device_manufacturer is not None or device_display_name is not None:
+        identity_parts.extend(
+            ["device", device_manufacturer or "", device_display_name or ""]
+        )
+    identity_parts.extend(
+        [start.astimezone(UTC).isoformat(), end.astimezone(UTC).isoformat()]
+    )
+    identity = "\x1f".join(identity_parts)
+    return f"generated-{metric_type}-{sha256(identity.encode()).hexdigest()}"
+
+
 class SyntheticProviderIngestor:
     """Validate a complete synthetic list response before storing observations."""
 
@@ -185,7 +207,7 @@ class SyntheticProviderIngestor:
         if not isinstance(raw_points, Sequence) or isinstance(raw_points, str | bytes):
             raise RawResponseValidationError("dataPoints must be a list")
         observations = [
-            self._validated_steps_point(raw_point, index, timezone)
+            self._validated_point(raw_point, index, timezone)
             for index, raw_point in enumerate(raw_points)
         ]
         return observations, token
@@ -199,22 +221,29 @@ class SyntheticProviderIngestor:
             raise RawResponseValidationError("dataPoints must be a list")
 
         return [
-            self._validated_steps_point(raw_point, index, "UTC")
+            self._validated_point(raw_point, index, "UTC")
             for index, raw_point in enumerate(raw_points)
         ]
 
-    def _validated_steps_point(
+    def _validated_point(
         self, raw_point: object, index: int, timezone: str
     ) -> MetricObservation:
         location = f"dataPoints[{index}]"
-        point = _object_with_optional_fields(
-            raw_point,
-            {"dataSource", "steps"},
-            {"name"},
-            location,
+        if not isinstance(raw_point, Mapping):
+            raise RawResponseValidationError(f"{location} must be an object")
+        if "steps" in raw_point:
+            return self._validated_steps_point(raw_point, index, timezone)
+        if "metricType" in raw_point:
+            return self._validated_sleep_metric_point(raw_point, index, timezone)
+        raise RawResponseValidationError(
+            f"{location} must contain a steps or supported sleep-metric point"
         )
+
+    def _validated_data_source(
+        self, raw_point: Mapping[str, Any], location: str
+    ) -> tuple[str, str, str | None, str | None]:
         data_source = _object_with_optional_fields(
-            point["dataSource"],
+            raw_point["dataSource"],
             {"recordingMethod", "platform"},
             {"device"},
             f"{location}.dataSource",
@@ -244,12 +273,17 @@ class SyntheticProviderIngestor:
                     device["displayName"],
                     f"{location}.dataSource.device.displayName",
                 )
+        return platform, recording_method, device_manufacturer, device_display_name
 
-        steps = _object_with_exact_fields(
-            point["steps"], {"interval", "count"}, f"{location}.steps"
-        )
+    def _validated_localized_interval(
+        self,
+        interval_value: object,
+        location: str,
+        timezone: str,
+    ) -> tuple[datetime, datetime]:
+        """Validate the shared six-field envelope against physical time."""
         interval = _object_with_exact_fields(
-            steps["interval"],
+            interval_value,
             {
                 "startTime",
                 "startUtcOffset",
@@ -258,30 +292,27 @@ class SyntheticProviderIngestor:
                 "civilStartTime",
                 "civilEndTime",
             },
-            f"{location}.steps.interval",
+            f"{location}.interval",
         )
         start = _absolute_timestamp(
-            interval["startTime"], f"{location}.steps.interval.startTime"
+            interval["startTime"], f"{location}.interval.startTime"
         )
-        end = _absolute_timestamp(
-            interval["endTime"], f"{location}.steps.interval.endTime"
-        )
+        end = _absolute_timestamp(interval["endTime"], f"{location}.interval.endTime")
         start_offset = _utc_offset(
-            interval["startUtcOffset"], f"{location}.steps.interval.startUtcOffset"
+            interval["startUtcOffset"], f"{location}.interval.startUtcOffset"
         )
         end_offset = _utc_offset(
-            interval["endUtcOffset"], f"{location}.steps.interval.endUtcOffset"
+            interval["endUtcOffset"], f"{location}.interval.endUtcOffset"
         )
         start_civil = _civil_time(
-            interval["civilStartTime"], f"{location}.steps.interval.civilStartTime"
+            interval["civilStartTime"], f"{location}.interval.civilStartTime"
         )
         end_civil = _civil_time(
-            interval["civilEndTime"], f"{location}.steps.interval.civilEndTime"
+            interval["civilEndTime"], f"{location}.interval.civilEndTime"
         )
 
         try:
             zone = ZoneInfo(timezone)
-            localized: list[datetime] = []
             for instant, offset, civil, label in (
                 (start, start_offset, start_civil, "start"),
                 (end, end_offset, end_civil, "end"),
@@ -295,30 +326,141 @@ class SyntheticProviderIngestor:
                     raise RawResponseValidationError(
                         f"{location} {label} civil time contradicts physical time"
                     )
-                localized.append(local)
-            identifier = (
-                _non_empty_string(point["name"], f"{location}.name")
-                if "name" in point
-                else _generated_steps_identifier(
-                    platform,
-                    recording_method,
-                    device_manufacturer,
-                    device_display_name,
-                    start,
-                    end,
-                )
+        except (ObservationValidationError, ValueError) as error:
+            raise RawResponseValidationError(
+                f"{location} is invalid: {error}"
+            ) from error
+        return start, end
+
+    def _validated_steps_point(
+        self, raw_point: object, index: int, timezone: str
+    ) -> MetricObservation:
+        location = f"dataPoints[{index}]"
+        point = _object_with_optional_fields(
+            raw_point,
+            {"dataSource", "steps"},
+            {"name"},
+            location,
+        )
+        platform, recording_method, device_manufacturer, device_display_name = (
+            self._validated_data_source(point, location)
+        )
+
+        steps = _object_with_exact_fields(
+            point["steps"], {"interval", "count"}, f"{location}.steps"
+        )
+        start, end = self._validated_localized_interval(
+            steps["interval"], location, timezone
+        )
+        start_local = start.astimezone(ZoneInfo(timezone))
+        end_local = end.astimezone(ZoneInfo(timezone))
+
+        identifier = (
+            _non_empty_string(point["name"], f"{location}.name")
+            if "name" in point
+            else _generated_steps_identifier(
+                platform,
+                recording_method,
+                device_manufacturer,
+                device_display_name,
+                start,
+                end,
             )
+        )
+        try:
             return MetricObservation.from_mapping(
                 {
                     "source": SYNTHETIC_SOURCE,
                     "source_observation_id": identifier,
                     "metric_type": "steps",
-                    "interval_start": localized[0].isoformat(),
-                    "interval_end": localized[1].isoformat(),
+                    "interval_start": start_local.isoformat(),
+                    "interval_end": end_local.isoformat(),
                     "value": _steps_count(steps["count"]),
                     "unit": "count",
                     "timezone": timezone,
                     "quality_status": "complete",
+                    "source_platform": platform,
+                    "recording_method": recording_method,
+                    "device_manufacturer": device_manufacturer,
+                    "device_display_name": device_display_name,
+                }
+            )
+        except (ObservationValidationError, ValueError) as error:
+            raise RawResponseValidationError(
+                f"{location} is invalid: {error}"
+            ) from error
+
+    def _validated_sleep_metric_point(
+        self, raw_point: object, index: int, timezone: str
+    ) -> MetricObservation:
+        location = f"dataPoints[{index}]"
+        point = _object_with_optional_fields(
+            raw_point,
+            {"dataSource", "metricType", "interval", "value"},
+            {"name", "unit"},
+            location,
+        )
+        platform, recording_method, device_manufacturer, device_display_name = (
+            self._validated_data_source(point, location)
+        )
+        metric_type = _non_empty_string(point["metricType"], f"{location}.metricType")
+        definition = SUPPORTED_SLEEP_METRICS.get(metric_type)
+        if definition is None:
+            raise RawResponseValidationError(
+                f"{location}.metricType is not a supported sleep metric"
+            )
+
+        start, end = self._validated_localized_interval(
+            point["interval"], location, timezone
+        )
+        start_local = start.astimezone(ZoneInfo(timezone))
+        end_local = end.astimezone(ZoneInfo(timezone))
+
+        raw_value = point["value"]
+        if raw_value is None:
+            value = None
+            unit = None
+            quality_status = "missing"
+            if point.get("unit") is not None:
+                raise RawResponseValidationError(
+                    f"{location}.unit cannot accompany a missing value"
+                )
+        else:
+            if isinstance(raw_value, bool) or not isinstance(raw_value, int | float):
+                raise RawResponseValidationError(f"{location}.value must be a number")
+            value = float(raw_value)
+            unit = _non_empty_string(point.get("unit"), f"{location}.unit")
+            if unit != definition.unit:
+                raise RawResponseValidationError(
+                    f"{location}.unit must be {definition.unit} for {metric_type}"
+                )
+            quality_status = "complete"
+
+        identifier = (
+            _non_empty_string(point["name"], f"{location}.name")
+            if "name" in point
+            else _generated_metric_identifier(
+                metric_type,
+                platform,
+                recording_method,
+                device_manufacturer,
+                device_display_name,
+                start,
+                end,
+            )
+        )
+        try:
+            return MetricObservation.from_mapping(
+                {
+                    "source": SYNTHETIC_SOURCE,
+                    "source_observation_id": identifier,
+                    "metric_type": metric_type,
+                    "interval_start": start_local.isoformat(),
+                    "interval_end": end_local.isoformat(),
+                    "value": value,
+                    "unit": unit,
+                    "timezone": timezone,
+                    "quality_status": quality_status,
                     "source_platform": platform,
                     "recording_method": recording_method,
                     "device_manufacturer": device_manufacturer,
