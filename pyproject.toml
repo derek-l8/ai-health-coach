@@ -15,7 +15,7 @@ dependencies = []
 ai-health-coach = "ai_health_coach.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8.3,<9", "ruff>=0.9,<1"]
+dev = ["pytest>=8.3,<10", "ruff>=0.9,<1"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
