@@ -142,20 +142,26 @@ def test_existing_database_migration_records_schema_version(tmp_path: Path) -> N
 
     store = ObservationStore(database)
 
-    assert store.connection.execute("PRAGMA user_version").fetchone()[0] == 1
+    assert store.connection.execute("PRAGMA user_version").fetchone()[0] == 5
+    assert (
+        store.connection.execute(
+            "SELECT name FROM sqlite_master WHERE name = 'sleep_score'"
+        ).fetchone()[0]
+        == "sleep_score"
+    )
 
 
 def test_newer_database_schema_is_rejected_without_modification(tmp_path: Path) -> None:
     database = tmp_path / "future.sqlite3"
     connection = sqlite3.connect(database)
-    connection.execute("PRAGMA user_version = 2")
+    connection.execute("PRAGMA user_version = 6")
     connection.close()
 
     with pytest.raises(StoreSchemaVersionError, match="newer than supported"):
         ObservationStore(database)
 
     connection = sqlite3.connect(database)
-    assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+    assert connection.execute("PRAGMA user_version").fetchone()[0] == 6
     assert (
         connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table'"

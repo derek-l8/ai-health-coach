@@ -20,17 +20,40 @@ includes platform, recording method, canonical device identity, and absolute
 interval so otherwise identical observations from different devices cannot
 collide.
 
+## Sleep score records
+
+Separate immutable records for Efficiency, Recovery, and predicted Energy are
+implemented. Each contains a 0–100 value, independent 0–1 confidence and
+completeness values, present inputs with units and provider-qualified source
+observation references, missing inputs, limitations, evidence, algorithm version,
+calibration revision, and an offset-aware calculation time. Only these three score
+types are accepted; there is no overall composite. Writes are transactional and
+idempotent by score identifier, and conflicting replays roll back.
+
+The contracts intentionally contain no scoring formulas or weights until provider
+fields and algorithm choices have been verified. Energy records identify a
+prediction and do not contain later survey outcomes.
+
+Daily feedback records are also implemented. They reference a previously stored
+predicted Energy score and contain a local date, IANA timezone, offset-aware
+submission time, and nullable 1–10 perceived energy, perceived recovery, and sleep
+quality fields plus a nullable note. All optional fields may remain `NULL`. A
+database gate enforces prediction-before-feedback and one feedback record per
+Energy prediction; stored feedback cannot be updated in place.
+
+Nightly scoring contexts are implemented without introducing a composite score.
+Each immutable context records the local sleep date, IANA timezone, offset-aware
+sleep-window boundaries, the cutoff for included input data, and distinct
+Efficiency, Recovery, and predicted Energy score identifiers. The window offsets
+must agree with the timezone across DST, the date must match the local window end,
+and each score must exist with the expected type and a calculation time at or
+after the cutoff. A score snapshot can belong to only one context. Feedback must
+match the linked context's date and timezone.
+
 ## Planned records
 
 The following contracts are designed but not implemented:
 
-- Separate immutable score records for Efficiency, Recovery, and predicted Energy,
-  each with value, confidence, completeness, inputs, missing inputs, limitations,
-  evidence, algorithm version, calibration revision, and calculation time.
-- An optional daily survey with nullable 1–10 perceived energy, perceived
-  recovery, and overall sleep quality plus a nullable note. Every field is
-  skippable. The observed survey is stored separately and never overwrites the
-  earlier Energy prediction.
 - Comparison observations for provider-owned scores such as Fitbit Sleep Score or
   Readiness, identified as external comparisons rather than application truth.
 - One canonical daily report per `(local_date, pipeline_version)`, with resumable

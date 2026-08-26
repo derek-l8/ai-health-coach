@@ -1,0 +1,189 @@
+[
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "sleep-duration-2024-03-10",
+    "metric_type": "sleep_duration",
+    "interval_start": "2024-03-09T23:00:00-05:00",
+    "interval_end": "2024-03-10T07:00:00-04:00",
+    "value": 380,
+    "unit": "minutes",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "time-in-bed-2024-03-10",
+    "metric_type": "time_in_bed",
+    "interval_start": "2024-03-09T23:00:00-05:00",
+    "interval_end": "2024-03-10T07:00:00-04:00",
+    "value": 420,
+    "unit": "minutes",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "awakenings-2024-03-10",
+    "metric_type": "awakenings",
+    "interval_start": "2024-03-10T01:00:00-05:00",
+    "interval_end": "2024-03-10T01:30:00-05:00",
+    "value": 2,
+    "unit": "count",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "stage-light-2024-03-10",
+    "metric_type": "stage_light_minutes",
+    "interval_start": "2024-03-09T23:00:00-05:00",
+    "interval_end": "2024-03-10T07:00:00-04:00",
+    "value": 160,
+    "unit": "minutes",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "stage-deep-2024-03-10",
+    "metric_type": "stage_deep_minutes",
+    "interval_start": "2024-03-09T23:00:00-05:00",
+    "interval_end": "2024-03-10T07:00:00-04:00",
+    "value": 85,
+    "unit": "minutes",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "stage-rem-2024-03-10",
+    "metric_type": "stage_rem_minutes",
+    "interval_start": "2024-03-09T23:00:00-05:00",
+    "interval_end": "2024-03-10T07:00:00-04:00",
+    "value": 95,
+    "unit": "minutes",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "stage-awake-2024-03-10",
+    "metric_type": "stage_awake_minutes",
+    "interval_start": "2024-03-09T23:00:00-05:00",
+    "interval_end": "2024-03-10T07:00:00-04:00",
+    "value": 40,
+    "unit": "minutes",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "spo2-unavailable-2024-03-10-night",
+    "metric_type": "spo2",
+    "interval_start": "2024-03-10T06:45:00-04:00",
+    "interval_end": "2024-03-10T06:46:00-04:00",
+    "value": null,
+    "unit": null,
+    "timezone": "America/New_York",
+    "quality_status": "missing"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "breathing-rate-2024-03-10",
+    "metric_type": "breathing_rate",
+    "interval_start": "2024-03-10T06:50:00-04:00",
+    "interval_end": "2024-03-10T06:51:00-04:00",
+    "value": 15,
+    "unit": "breaths/minute",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "resting-heart-rate-night-2024-03-10",
+    "metric_type": "resting_heart_rate",
+    "interval_start": "2024-03-10T05:00:00-04:00",
+    "interval_end": "2024-03-10T05:01:00-04:00",
+    "value": 56,
+    "unit": "beats/minute",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "hrv-night-2024-03-10",
+    "metric_type": "heart_rate_variability",
+    "interval_start": "2024-03-10T05:10:00-04:00",
+    "interval_end": "2024-03-10T05:11:00-04:00",
+    "value": 62,
+    "unit": "milliseconds",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "resting-heart-rate-2024-03-06",
+    "metric_type": "resting_heart_rate",
+    "interval_start": "2024-03-06T22:00:00-05:00",
+    "interval_end": "2024-03-06T22:01:00-05:00",
+    "value": 58,
+    "unit": "beats/minute",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "resting-heart-rate-2024-03-07",
+    "metric_type": "resting_heart_rate",
+    "interval_start": "2024-03-07T22:00:00-05:00",
+    "interval_end": "2024-03-07T22:01:00-05:00",
+    "value": 57,
+    "unit": "beats/minute",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "resting-heart-rate-2024-03-08",
+    "metric_type": "resting_heart_rate",
+    "interval_start": "2024-03-08T22:00:00-05:00",
+    "interval_end": "2024-03-08T22:01:00-05:00",
+    "value": 59,
+    "unit": "beats/minute",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "hrv-2024-03-06",
+    "metric_type": "heart_rate_variability",
+    "interval_start": "2024-03-06T22:10:00-05:00",
+    "interval_end": "2024-03-06T22:11:00-05:00",
+    "value": 60,
+    "unit": "milliseconds",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "hrv-2024-03-07",
+    "metric_type": "heart_rate_variability",
+    "interval_start": "2024-03-07T22:10:00-05:00",
+    "interval_end": "2024-03-07T22:11:00-05:00",
+    "value": 58,
+    "unit": "milliseconds",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  },
+  {
+    "source": "synthetic-google-health",
+    "source_observation_id": "hrv-2024-03-08",
+    "metric_type": "heart_rate_variability",
+    "interval_start": "2024-03-08T22:10:00-05:00",
+    "interval_end": "2024-03-08T22:11:00-05:00",
+    "value": 61,
+    "unit": "milliseconds",
+    "timezone": "America/New_York",
+    "quality_status": "complete"
+  }
+]
