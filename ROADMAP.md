@@ -1,80 +1,70 @@
 # Roadmap
 
-## Implemented foundation
+The project is ordered around a defensible prospective comparison, not a broad
+health-app feature list.
 
-- Canonical observations with provenance, units, missingness, offset-aware time,
-  IANA timezones, and DST validation.
-- Transactional SQLite storage with replay idempotency and conflict detection.
-- Strict synthetic Google Health steps ingestion and synthetic regression tests.
+## Now: synthetic foundation
 
-## Milestone 1: local application shell
+Implemented:
 
-- Add a loopback-only Python web service and local browser dashboard.
-- Keep backend and scheduled execution independent of browser lifecycle and
-  Windows-specific presentation behavior.
-- Add application-owned protected data directories and Windows startup docs.
-- Display foundation status without claiming live collection or scores.
+- canonical SQLite observations with provenance, units, missingness, timezone,
+  DST, transactional replay, and conflict detection;
+- deterministic Efficiency, Recovery, and predicted Energy heuristics;
+- event-relative configuration and validated label, context, exposure, and Coach
+  insight records;
+- format-neutral import-adapter interfaces;
+- a deterministic 60-day CSV and synthetic Coach fixtures;
+- historical-median, rolling-average, and Google-only comparison arms;
+- personal-only and hybrid training interfaces;
+- rolling-origin splits, leakage rejection, and evaluation metrics; and
+- a static responsive phone-form prototype.
 
-## Milestone 2: user control and Google Health collection
+These components use synthetic data. No current result establishes personal or
+medical usefulness.
 
-- Implement Google OAuth with least-privilege, category-specific consent.
-- Verify Google Fitbit Air API fields, units, timestamps, provenance, pagination,
-  quotas, and replay behavior against synthetic contract tests.
-- Retain successfully ingested raw responses for up to 30 days and canonical
-  observations until local user deletion; never delete upstream source records.
-- Add separate inspectable/revocable Google and AI-processing consent.
-- Add complete sensitive-data export and seven-day recoverable local deletion.
+## Next: one real capture vertical slice
 
-## Milestone 3: all three sleep scores
+1. Inspect an actual private Google account export.
+2. Document its fields, timing, units, provenance, and missingness.
+3. Implement one narrow adapter with a fictional public fixture.
+4. Connect event-relative labels and exposure records to private persistence.
+5. Test one phone-friendly submission path without making the public repository a
+   data destination.
+6. Capture Premium output manually when no verified machine-readable path exists.
 
-- Implement separately versioned Efficiency, Recovery, and predicted Energy
-  modules without an overall composite score.
-- Store predicted Energy before a separate, optional daily 1–10 energy, recovery,
-  and sleep-quality survey; every response and note remains nullable.
-- Show confidence, completeness, evidence, limitations, contributing inputs,
-  missing inputs, and graceful degradation.
-- Store provider proprietary scores only as labeled comparisons.
-- Validate DST, late-arriving data, personal baselines, sensitivity, and differing
-  single-night and multi-night horizons before presenting scores as useful.
+Account exports, structured entry, screenshots, emulator-assisted capture, and a
+future verified API remain replaceable acquisition paths.
 
-## Milestone 4: Codex-first coaching
+## Data gates
 
-- Define a replaceable runner accepting only a bounded read-only coaching packet
-  in a private trusted/isolated runtime, never the external development sandbox.
-- Manually prove subscription-authenticated, noninteractive Codex on Windows under
-  the intended Task Scheduler account; do not substitute API-key billing.
-- Store immutable prompts, responses, failure categories, actual model/provider
-  metadata, request version, and exact deterministic score snapshots.
-- Keep deterministic-only reports useful when coaching fails and retry only the
-  coaching stage without attaching stale output.
+- **Days 1-20:** debug timing, adherence, and missingness; descriptions only.
+- **After 21 complete labels:** allow explicitly exploratory associations.
+- **After 60 complete labels:** freeze the first feature and training protocol.
+- **After 14 later predictions:** permit a preliminary held-out comparison.
+- **90-180 days:** preferred range for more stable schedule and seasonal coverage.
 
-## Milestone 5: daily Windows workflow and dashboard
+Partial days remain available for targets whose required fields are complete.
 
-- Add an idempotent, resumable non-interactive command for Windows Task Scheduler,
-  configured to run once when the computer next becomes available.
-- Generate at most one canonical report per local date and pipeline version, using
-  the user's configured timezone, then exit cleanly.
-- Present today's report plus weekly, monthly, and longer-term trends.
-- Preserve original report snapshots and expose complete version/provenance detail
-  behind one readable active sleep-model bundle label.
+## Then: personal-model comparison
 
-## Milestone 6: guarded personalization and revisions
+- Fit an elastic-net model separately for each target.
+- Compare historical, Google-only, personal-only, and hybrid arms on common days.
+- Report MAE first, with within-one-point accuracy, rank correlation, calibration,
+  coverage, uncertainty, and exposure sensitivity.
+- Treat a 10% MAE improvement over the rolling median as a preliminary working
+  threshold, not proof of general superiority.
+- Suppress or qualify results when coverage, drift, leakage, or uncertainty makes
+  comparison unreliable.
 
-- Accept structured Codex calibration suggestions without direct activation.
-- Gate bounded weekly calibration by sample size, allowed ranges, data quality,
-  historical validation, measurable improvement, and rollback availability.
-- Add separate tested development workflow for formula, prompt, schema,
-  orchestration, and code revisions with atomic parent-linked activation.
-- Explain changes and expose rollback/freeze controls in the dashboard.
+## Later
 
-## Milestone 7: backups and deletion completion
+After the capture and evaluation loop works:
 
-- Add configurable automatic encrypted local backups, retention, integrity checks,
-  and a tested restore command.
-- Validate the relationship among trash, active storage, backups, and expiry.
-- Only then implement double-confirmed permanent deletion with accurate backup
-  retention disclosure.
+- present forecasts and evidence in a durable phone interface;
+- add optional coaching downstream of stored predictions;
+- document private backup, export, and deletion behavior; and
+- decide whether scheduling, private hosting, or a packaged application adds
+  enough value to justify its operational cost.
 
-Phone access through an authenticated private network such as Tailscale and a
-packaged desktop shell are deferred until the local application works. Public
-internet deployment is out of scope.
+Public deployment, clinical claims, and population-level conclusions are out of
+scope.

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Synthetic health check-in</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: #eef3f0;
+      color: #18221d;
+    }
+    body { margin: 0; }
+    main { max-width: 34rem; margin: auto; padding: 1rem; }
+    .notice {
+      background: #153c2d; color: white; border-radius: 1rem; padding: 1rem;
+      box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.12);
+    }
+    .card {
+      background: white; border: 1px solid #cad8d0; border-radius: 1rem;
+      padding: 1rem; margin-top: 1rem;
+    }
+    h1 { font-size: 1.5rem; margin: 0 0 0.5rem; }
+    h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
+    p { line-height: 1.45; }
+    label { display: block; font-weight: 650; margin-top: 0.75rem; }
+    input, select, textarea, button {
+      box-sizing: border-box; width: 100%; min-height: 2.75rem; margin-top: 0.35rem;
+      border: 1px solid #8fa49a; border-radius: 0.7rem; padding: 0.65rem;
+      font: inherit;
+    }
+    input[type="range"] { padding: 0; }
+    button { background: #176b4b; color: white; border: 0; font-weight: 700; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .muted { color: #52645b; font-size: 0.9rem; }
+    output { font-weight: 750; }
+    @media (prefers-color-scheme: dark) {
+      :root { background: #101713; color: #eef5f1; }
+      .card { background: #17231d; border-color: #344b40; }
+      .muted { color: #b4c5bc; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <section class="notice">
+    <h1>Synthetic check-in prototype</h1>
+    <p>This page uses fictional values only. Submissions stay in this browser
+    tab and are not sent or stored.</p>
+  </section>
+
+  <form id="check-in">
+    <section class="card">
+      <h2>Event</h2>
+      <div class="row">
+        <label>Date
+          <input name="local_date" type="date" value="2026-01-05" required>
+        </label>
+        <label>Event
+          <select name="event">
+            <option value="wake">Wake</option>
+            <option value="afternoon">Afternoon</option>
+            <option value="day_close">Day close</option>
+          </select>
+        </label>
+      </div>
+      <label>Actual wake time
+        <input name="wake_at" type="datetime-local" value="2026-01-05T06:00" required>
+      </label>
+      <p class="muted">Timezone: America/Los_Angeles. Afternoon is configured from
+      5 to 9 hours after the recorded wake event, not at a fixed
+      clock time.</p>
+    </section>
+
+    <section class="card">
+      <h2>Rating</h2>
+      <label>Readiness or energy: <output id="rating-output">5</output>/10
+        <input id="rating" name="rating" type="range" min="1" max="10" value="5">
+      </label>
+      <label>Google guidance seen before this rating?
+        <select name="google_seen">
+          <option value="unsure">Unsure</option>
+          <option value="no">No</option>
+          <option value="yes">Yes</option>
+        </select>
+      </label>
+      <label>Recommendation acted on?
+        <select name="acted_on">
+          <option value="unknown">Unknown</option>
+          <option value="no">No</option>
+          <option value="partly">Partly</option>
+          <option value="yes">Yes</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Optional context</h2>
+      <div class="row">
+        <label>Academic stress
+          <select name="stress">
+            <option value="">Not captured</option>
+            <option>Low</option><option>Medium</option><option>High</option>
+          </select>
+        </label>
+        <label>Exercise
+          <select name="exercise">
+            <option value="">Not captured</option>
+            <option>None</option><option>Light</option>
+            <option>Moderate</option><option>Hard</option>
+          </select>
+        </label>
+      </div>
+      <label>Short note
+        <textarea name="note" rows="3" placeholder="Optional"></textarea>
+      </label>
+      <button type="submit">Record synthetic check-in</button>
+      <p id="status" class="muted" role="status"></p>
+    </section>
+  </form>
+</main>
+<script>
+  const rating = document.querySelector("#rating");
+  const output = document.querySelector("#rating-output");
+  rating.addEventListener("input", () => { output.value = rating.value; });
+  document.querySelector("#check-in").addEventListener("submit", event => {
+    event.preventDefault();
+    const payload = Object.fromEntries(new FormData(event.currentTarget));
+    document.querySelector("#status").textContent =
+      "Synthetic submission captured in memory: " + JSON.stringify(payload);
+  });
+</script>
+</body>
+</html>
