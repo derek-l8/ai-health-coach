@@ -1,146 +1,122 @@
 # Architecture
 
-## Target deployment
+## Purpose and current boundary
 
-The first deployment is a single-user application on Windows. A platform-neutral
-Python backend owns collection, storage, deterministic calculations, retention,
-and report generation. A responsive local web server binds to loopback so the
-user can open it in a normal browser without creating a hosted account. Browser
-state and Windows-specific presentation behavior never control backend progress.
+The system supports a prospective single-person comparison of historical
+baselines, Google Health Premium output, personal models, and hybrid models for
+readiness and energy.
 
-Windows Task Scheduler eventually starts a non-interactive daily run even when the
-browser is closed. It is configured to run once when the computer next becomes
-available after being asleep, off, or offline. A packaged desktop shell is deferred
-unless it later provides a concrete benefit. Phone access is also deferred; the
-loopback-first design may later gain authenticated private-network access such as
-Tailscale, never public deployment infrastructure.
+The repository currently implements synthetic ingestion, canonical storage,
+heuristic scoring, validated study records, deterministic fixtures, experiment
+interfaces, rolling-origin evaluation, and a static phone-form prototype. It does
+not implement live collection, private study persistence, trained personal
+models, or a production service.
 
-## Runtime flow
-
-The trusted application boundary will collect user-authorized Google Fitbit Air
-data through the Google Health API, retain it in application-controlled storage,
-run deterministic modular calculations, and then provide explicitly selected raw
-or derived context to Codex for wellness coaching.
+## Logical flow
 
 ```text
-Google Fitbit Air -> Google Health OAuth/API
-  -> raw response archive (30-day retention)
-  -> canonical observations (retained until user deletion)
-  -> separate deterministic Efficiency, Recovery, and predicted Energy modules
-  -> consent and context selection
-  -> replaceable subscription Codex coaching runner
-  -> immutable local report history
-  -> responsive local dashboard
+private metrics, provider output, and check-ins
+                 |
+                 v
+source-specific adapters
+                 |
+                 v
+canonical observations and capture provenance
+                 |
+                 v
+cutoff-safe feature snapshot
+       |            |             |
+       v            v             v
+historical       personal       hybrid
+baseline          model          model
+       \            |             /
+        +------ immutable predictions
+                       |
+                       v
+              later personal labels
+                       |
+                       v
+             rolling-origin evaluation
 ```
 
-The coaching runner is an interface rather than part of scoring. It accepts a
-versioned, bounded, read-only packet and returns coaching text plus optional
-structured calibration suggestions. It receives only necessary measurements,
-scores, provenance, confidence, uncertainty, relevant history, goals, and
-feedback. It receives no complete database, source tree, credentials, secrets,
-keys, or unrelated files. Routine coaching is output-only with respect to code and
-cannot activate weights or algorithms.
+Optional presentation and coaching consume stored predictions after they are
+fixed. They cannot redefine a target or rewrite a past result.
 
-The intended first runner uses subscription-authenticated Codex, not API-key
-billing. Official OpenAI documentation describes [ChatGPT subscription sign-in
-for local Codex](https://learn.chatgpt.com/docs/auth), and the [`codex exec`
-noninteractive interface](https://learn.chatgpt.com/docs/non-interactive-mode)
-states that it reuses saved CLI authentication and can run in scheduled jobs.
-Separately, OpenAI documents [ChatGPT desktop scheduled
-tasks](https://learn.chatgpt.com/docs/automations) and the [Windows desktop
-app](https://learn.chatgpt.com/docs/windows/windows-app). Those desktop tasks are
-not Windows Task Scheduler and do not prove the exact personal-subscription plus
-Windows Task Scheduler combination as a reliable unattended application service.
-That combination remains an unresolved live integration check. A different
-supported plan, runner, provider, or model can later replace it without changing
-canonical observations or deterministic scoring.
+## Components
 
-Private coaching must run in a trusted or isolated runtime distinct from the
-separately configured disposable Codex development sandbox. That external sandbox
-contains public code and synthetic fixtures only and must never receive real
-coaching packets. The repository devcontainer is an ordinary development
-environment and does not enforce this boundary.
+### Canonical observation foundation
 
-## Daily pipeline contract
+`MetricObservation` and `ObservationStore` preserve provider identity, units,
+missingness, timestamps, timezone, device provenance, transactions, conflict
+detection, and idempotent replay. Existing deterministic sleep scores remain
+separate, versioned baselines or candidate features.
 
-For the user's configured IANA timezone, the scheduled pipeline:
+### Study records
 
-1. retrieves, validates, and stores new Google Health data;
-2. calculates the three separate scores, storing predicted Energy before survey;
-3. builds the bounded coaching packet;
-4. requests and validates coaching; and
-5. makes the stored report available to the dashboard.
+`study_protocol.py` defines event-relative configuration and validated personal
+labels, context, provider exposure, and Coach insight provenance. A later
+persistence layer should store these records without changing their meanings.
 
-The canonical report identity is `(local_date, pipeline_version)`. Stages use
-durable status and idempotency keys so interrupted work resumes without duplicating
-observations, scores, surveys, requests, or responses. A Codex authentication,
-network, or execution failure does not roll back deterministic scores. The report
-records a non-sensitive coaching failure category and may retry only the coaching
-stage; stale coaching is never attached to a newer report.
+### Capture adapters
 
-## Separation of responsibilities
+`import_adapters.py` defines an opaque source artifact, normalized import batch,
+and a registry that accepts exactly one matching adapter. Final Google export,
+screenshot, emulator, and API formats are deliberately unspecified until observed
+and verified.
 
-Collection, canonical storage, deterministic analysis, context selection, model
-interpretation, and presentation are separate layers. Frontend flow and styling
-must not implement or modify scoring logic. A model may explain or contextualize
-a score, but it cannot replace the deterministic result or silently change its
-inputs.
+A Premium item must remain classified as an original insight, retrieved
+historical insight, or later reconstruction.
 
-Standing consent authorizes scheduled collection, calculation, and report
-generation for selected data categories. Consent remains reviewable and
-revocable. It does not authorize unrelated filesystem, application, or network
-actions. The coaching process should run with the least local permissions needed.
+### Evaluation
 
-The dashboard shows today's status first and historical trends second. Every score
-includes confidence, completeness, evidence, limitations, and missing inputs.
-Fitbit proprietary Sleep Score, Readiness, or similar values are comparison series
-only, never ground truth for independently versioned algorithms.
+`evaluation.py` implements historical and provider comparison arms,
+ML-library-neutral personal and hybrid interfaces, rolling-origin splits,
+temporal-leakage checks, and the initial metrics.
 
-## Personalization and activation
+The first trained personal model is planned as elastic-net regression. Feature
+generation, imputation, scaling, selection, and tuning must be fitted inside each
+training window.
 
-Versioned base algorithms calculate the three scores. Personal calibration uses
-bounded weights and thresholds learned from inspectable feedback. Codex may propose
-a structured change, but a deterministic gate checks minimum sample size, parameter
-ranges, data quality, historical validation, measurable improvement, and rollback
-availability. Calibration normally activates no more than weekly.
+### Synthetic demonstration
 
-Larger formula, prompt, schema, orchestration, or code changes use a separate Codex
-development workflow with synthetic tests and evaluations. Activation is atomic,
-records its parent, and retains the previous working revision. The dashboard
-explains what changed, why, evidence window, validation, measured improvement,
-activation time, parent revision, and rollback or freeze controls.
+`synthetic_study.py` generates fictional irregular wake times, measurements,
+context, provider scores, and targets. The checked-in CSV and Coach screenshots
+exercise public demos without exposing a real person. The static phone form has no
+backend or persistence.
 
-## Version and report identity
+## Time and leakage
 
-Human-facing sleep bundles use semantic labels such as `sleep-model 1.0.0`.
-Internally each report records separate semantic versions for Efficiency,
-Recovery, and Energy; monotonic calibration revision such as `cal-000001`; prompt
-and coaching-runner versions; the actual configured or returned provider/model
-identifier; application and request versions; parent revision; activation instant;
-and source provenance.
+Three times remain distinct:
 
-Historical reports retain the exact original scores, inputs, completeness,
-versions, timestamp, offset, and IANA timezone. They are never silently
-recalculated. A future current-model comparison must be separately labeled.
+- `observed_at`: when a state or event applied;
+- `available_at`: when it could first be used; and
+- `captured_at`: when it entered storage.
 
-## Manual Codex runner proof-of-concept
+A feature or provider output is eligible only when available by the prediction
+cutoff. A late label keeps both the interval it describes and its actual capture
+time. A retrospective Coach answer cannot be treated as the message available on
+the original day.
 
-Before enabling scheduled coaching on Windows, a user-controlled acceptance test
-must sign in with ChatGPT, confirm subscription authentication, run the bounded
-packet noninteractively with read-only/no-code access, validate structured output,
-restart Windows, run under the intended Task Scheduler account with the browser
-and dashboard closed, exercise offline/auth-expiry failures, confirm no credential
-or unrelated-file access, and verify deterministic-only fallback and safe retry.
-Passing locally demonstrates feasibility for that environment; it is not a claim
-that the external Codex development sandbox tested private coaching.
+## Storage and versioning
 
-## Security evolution
+SQLite is the initial canonical store. Predictions and later evaluations should
+reference immutable source, feature, model, target, and protocol versions rather
+than recalculating history in place.
 
-Protected storage and encrypted local backups are planned behind narrow storage
-interfaces. Backup schedule and retention defaults remain implementation choices,
-but integrity verification and a tested restore command are acceptance gates for
-permanent deletion. OAuth and Codex session material never enter Git, health
-tables, coaching packets, exports, or backups unless a separately reviewed secure
-credential-backup design explicitly permits it.
+Version independently:
 
-Only the synthetic ingestion and canonical-storage layers exist today.
+- capture adapter and schema;
+- target prompt and anchors;
+- feature pipeline;
+- model and training window; and
+- evaluation protocol.
+
+## Public and private execution
+
+The public checkout contains code and fictional fixtures only. Real exports,
+screenshots, labels, credentials, databases, trained artifacts, and row-level
+results remain in a separate private location.
+
+A real form, emulator, OAuth integration, hosted service, or AI provider creates
+a new trust boundary requiring explicit configuration and review. The static form
+in this repository proves layout only, not production security.

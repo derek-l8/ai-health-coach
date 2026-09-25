@@ -1,38 +1,65 @@
 # Security policy
 
-Do not report vulnerabilities with real credentials or health exports. Use
-synthetic reproductions. Keep OAuth secrets, model-provider keys, databases, and
-raw exports outside Git. Revoke any credential accidentally exposed and remove it
-from all history before sharing the repository.
+## Reporting
 
-Non-sensitive defects may be reported through a GitHub issue. Never post
-credentials, health exports, tokens, private records, or other sensitive material
-in a public issue. This project does not currently claim a private reporting
-channel; do not publish sensitive details while seeking a safe contact route.
+Report non-sensitive defects through a GitHub issue. Do not include credentials,
+tokens, health exports, screenshots, private records, account identifiers, or
+other sensitive material in a public issue. This project does not currently
+publish a private vulnerability-reporting channel; use a minimal, non-sensitive
+description while seeking a safe contact route.
 
-The planned local web service binds to loopback by default and has no public
-internet deployment. Later phone access may use an explicitly configured private
-network such as Tailscale, with authentication and threat-model review. Google
-OAuth tokens and Codex authentication belong in protected operating-system or
-provider-managed credential storage, not in the health database.
+If a credential has entered a public commit, revoke or rotate it before treating
+history cleanup as sufficient.
 
-Routine private coaching and autonomous Codex development are separate trust
-boundaries. Codex development occurs in separately configured disposable
-infrastructure outside this repository, using public code and synthetic data only;
-the included devcontainer does not enforce that boundary. The
-coaching runner receives a generated bounded packet and cannot access application
-code, the complete database, OAuth or Git credentials, client secrets, encryption
-keys, or unrelated files.
+## Current exposure
 
-Initial local storage is not advertised as application-encrypted. Windows account
-isolation and file permissions are the first boundary while protected storage and
-automatic encrypted backups are designed and tested. Raw responses expire within
-30 days only after successful canonical ingestion. Normal local deletion has a
-seven-day undo period and never deletes upstream Google/Fitbit records.
+The current repository is a Python library and synthetic CLI scaffold. It does
+not serve a dashboard, authenticate users, collect live health data, or run a
+trained personal model. Its current tests therefore do not establish the security
+of a future phone form, OAuth flow, emulator workflow, private deployment, or AI
+integration.
 
-Immediate permanent deletion is deliberately deferred until encrypted backup
-creation, retention, expiry, integrity verification, and restore tests pass. A
-future permanent-delete flow must show affected dates and categories, explain
-dependent results, require typed `DELETE PERMANENTLY` plus a second confirmation,
-and accurately disclose backup expiry instead of promising instant erasure from
-every backup.
+## Public-repository boundary
+
+Only code, documentation, and synthetic fixtures belong in Git. Keep these
+outside the repository and its history:
+
+- Google account exports and archives;
+- health screenshots and Premium insight captures;
+- personal labels, notes, and context fields;
+- SQLite databases, generated reports, and model artifacts trained on private
+  data;
+- OAuth material, session files, cookies, API keys, and provider credentials;
+- logs or caches that may contain identifiers or health content.
+
+Synthetic reproductions should preserve the relevant schema and failure behavior
+without copying personal values or unique identifiers. Recreate public fixtures
+with fictional values rather than relying on redaction. Aggregate results from a
+single-person study may still be sensitive and require review before publication.
+
+## Private runtime boundary
+
+The eventual study runtime may be local or may use a service the user explicitly
+approves. That is a separate trust boundary from the public source repository.
+Private data access must be limited to the component performing an authorized
+capture, analysis, or coaching task. Credentials must use operating-system or
+provider-managed storage rather than health tables, model inputs, exports, or
+logs.
+
+Screenshot and emulator workflows deserve the same treatment as raw exports:
+screen recordings, notification text, clipboard contents, emulator backups, and
+authentication state may all contain sensitive material. Automation should use a
+dedicated profile where practical and must not commit or upload artifacts by
+default.
+
+Any future networked form or dashboard requires a separate threat-model review
+covering authentication, transport security, session handling, cross-site request
+forgery, authorization, logging, backups, and recovery. Loopback or a private
+network is not by itself proof of adequate protection.
+
+## Health boundary
+
+The project produces wellness estimates only. It must not present a model output
+as diagnosis, treatment, emergency monitoring, or a reason to delay professional
+care. Provider scores and personal predictions must remain distinguishable from
+measured facts and self-reported outcomes.

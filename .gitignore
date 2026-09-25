@@ -14,3 +14,17 @@ backups/
 exports/
 health-export*
 raw-export*
+
+# Private study inputs and derived artifacts
+private-data/
+private-results/
+private-screenshots/
+emulator-profiles/
+emulator-backups/
+trained-models/
+*.har
+*.joblib
+*.pickle
+*.pkl
+*.onnx
+*.safetensors
