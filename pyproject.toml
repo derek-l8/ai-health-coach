@@ -5,10 +5,10 @@ build-backend = "hatchling.build"
 [project]
 name = "ai-health-coach"
 version = "0.1.0"
-description = "Synthetic-data and evaluation foundation for a personal health modeling study"
+description = "Private check-in capture and evaluation for a personal health modeling study"
 readme = "README.md"
 requires-python = ">=3.14"
-license = {file = "LICENSE"}
+license = "MIT"
 dependencies = ["tzdata>=2025.2; sys_platform == 'win32'"]
 
 [project.scripts]

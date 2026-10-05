@@ -46,6 +46,22 @@ def test_synthetic_evaluation_command() -> None:
     }
 
 
+def test_synthetic_sleep_score_command_is_cwd_independent(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [sys.executable, "-m", "ai_health_coach", "--synthetic-score-night"],
+        check=False,
+        capture_output=True,
+        cwd=tmp_path,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["mode"] == "synthetic-score-night"
+    assert payload["private_data_accessed"] is False
+    assert len(payload["scores"]) == 3
+
+
 def test_cli_writes_synthetic_dataset(tmp_path: Path) -> None:
     dataset = tmp_path / "study.csv"
 

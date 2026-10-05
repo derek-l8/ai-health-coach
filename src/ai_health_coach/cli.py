@@ -1,21 +1,25 @@
-"""Command-line interface for the synthetic-only application scaffold."""
+"""Synthetic demonstrations and explicitly configured private check-in capture."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
 from collections.abc import Sequence
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from importlib.resources import files
 from pathlib import Path
 
 from ai_health_coach import __version__
 
-SLEEP_NIGHT_FIXTURE = Path("fixtures/synthetic/sleep-night-observations.json")
+SLEEP_NIGHT_FIXTURE = files("ai_health_coach").joinpath(
+    "fixtures", "sleep-night-observations.json"
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Build the CLI parser without exposing provider or personal-data inputs."""
+    """Expose synthetic commands and an opt-in private check-in service."""
     parser = argparse.ArgumentParser(prog="ai-health-coach")
     commands = parser.add_mutually_exclusive_group()
     commands.add_argument(
@@ -38,6 +42,36 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         metavar="PATH",
         help="write the generated 60-day synthetic study CSV",
+    )
+    commands.add_argument(
+        "--serve-checkins",
+        action="store_true",
+        help="serve the private phone form; requires --database and --timezone",
+    )
+    commands.add_argument(
+        "--import-form-snapshot",
+        type=Path,
+        metavar="PATH",
+        help="import a private snapshot exported by scripts/google-forms-study.js",
+    )
+    parser.add_argument("--database", type=Path, help="private database outside Git")
+    parser.add_argument(
+        "--timezone", help="IANA study timezone, e.g. America/Los_Angeles"
+    )
+    parser.add_argument(
+        "--bind", default="127.0.0.1", help="explicit IPv4 bind address"
+    )
+    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument(
+        "--cert", type=Path, help="HTTPS certificate trusted by your phone"
+    )
+    parser.add_argument("--key", type=Path, help="HTTPS certificate's private key")
+    parser.add_argument("--afternoon-start-hours", type=float, default=5)
+    parser.add_argument("--afternoon-end-hours", type=float, default=9)
+    parser.add_argument(
+        "--caffeine-cutoff",
+        metavar="HH:MM",
+        help="optional caffeine cutoff in the study timezone (24-hour time)",
     )
     return parser
 
@@ -124,7 +158,76 @@ def _write_synthetic_study(path: Path) -> int:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the minimal command entry point."""
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.import_form_snapshot is not None:
+        from ai_health_coach.checkins import CheckInStore, private_database_path
+        from ai_health_coach.forms_import import (
+            MAX_SNAPSHOT_BYTES,
+            import_form_snapshot,
+        )
+
+        if args.database is None:
+            parser.error("--import-form-snapshot requires --database")
+        try:
+            database = private_database_path(args.database)
+            database.parent.mkdir(parents=True, exist_ok=True)
+            with args.import_form_snapshot.open("rb") as source:
+                content = source.read(MAX_SNAPSHOT_BYTES + 1)
+            store = CheckInStore(database)
+            try:
+                result = import_form_snapshot(
+                    store, content, datetime.now().astimezone()
+                )
+            finally:
+                store.close()
+        except (ValueError, OSError) as error:
+            parser.error(str(error))
+        print(
+            json.dumps(
+                {"mode": "import-form-snapshot", **asdict(result)}, sort_keys=True
+            )
+        )
+        return 0
+    if args.serve_checkins:
+        from ai_health_coach.checkin_server import serve_checkins
+        from ai_health_coach.study_protocol import (
+            EventConfiguration,
+            EventType,
+            EventWindowConfig,
+            TriggerKind,
+        )
+
+        if args.database is None or args.timezone is None:
+            parser.error("--serve-checkins requires --database and --timezone")
+        if not 0 <= args.port <= 65535:
+            parser.error("--port must be from 0 to 65535")
+        if not all(
+            math.isfinite(hours) and 0 <= hours <= 168
+            for hours in (args.afternoon_start_hours, args.afternoon_end_hours)
+        ):
+            parser.error("afternoon boundaries must be finite hours from 0 to 168")
+        try:
+            config = EventConfiguration(
+                version="event-config-1.1.0",
+                timezone=args.timezone,
+                caffeine_cutoff_local_time=args.caffeine_cutoff,
+                windows=(
+                    EventWindowConfig(EventType.WAKE, TriggerKind.MANUAL),
+                    EventWindowConfig(
+                        EventType.AFTERNOON,
+                        TriggerKind.RELATIVE_TO_WAKE,
+                        timedelta(hours=args.afternoon_start_hours),
+                        timedelta(hours=args.afternoon_end_hours),
+                    ),
+                    EventWindowConfig(EventType.DAY_CLOSE, TriggerKind.MANUAL),
+                ),
+            )
+            return serve_checkins(
+                args.database, config, args.bind, args.port, args.cert, args.key
+            )
+        except (ValueError, OSError) as error:
+            parser.error(str(error))
     if args.synthetic_smoke:
         print(
             json.dumps(
@@ -148,5 +251,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.write_synthetic_study is not None:
         return _write_synthetic_study(args.write_synthetic_study)
 
-    print("Personal AI Health Coach scaffold: use --synthetic-smoke to verify the CLI.")
+    print(
+        "Personal AI Health Coach: use --help for demos and private check-in capture."
+    )
     return 0

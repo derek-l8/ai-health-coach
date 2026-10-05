@@ -1,12 +1,144 @@
 # Data-collection protocol
 
-- Status: synthetic contracts implemented; private collection not started
+- Status: Forms setup/export and private import implemented; real-account pilot pending
 - Protocol version: 0.1.0
 - Scope: prospective single-person wellness study
 
 This protocol defines the minimum records needed to compare a historical
 baseline, Google Health Premium, a personal raw-data model, and a hybrid model.
 It is intentionally tolerant of inconsistent participation.
+
+## Primary route: Google Forms and Drive
+
+Daily entries use a Google Form linked to a private response Sheet. Safari on
+iPhone can open the responder link without a running laptop, local certificate,
+or firewall rule. This route uses your Google account; it is not local-only.
+
+The repository supplies a setup/export script and a validated Python importer.
+They are tested with fictional data and mocked Google services. The script has
+not yet been run in a real account, and the iPhone flow still needs a pilot.
+
+### One-time setup
+
+1. Open [Apps Script](https://script.google.com/) in the Google account you want
+   to use and create a new project. Replace the editor's starter code with
+   [google-forms-study.js](../scripts/google-forms-study.js). Review the script:
+   it creates a Form, response Sheet, and Drive folders; it does not deploy a
+   web app, access Google Health, or install an automatic trigger.
+2. Set `STUDY.timezone` to your IANA timezone before running it. Afternoon timing
+   defaults to 5–9 elapsed hours after actual wake. Wake and day-close are manual.
+   `caffeineCutoff` is optional: leave `null` to omit that question, or choose
+   a 24-hour `HH:MM` cutoff. The answer refers to caffeine at or after that time
+   on the rating's study-local date. No cutoff or wake hour is assumed.
+3. Select `setupStudy` in the function menu and click Run. Review and authorize
+   the Google permissions yourself. This script requests Forms, Sheets, and
+   Drive access; do not authorize code you have not reviewed. Its execution log
+   prints links to the Form editor, response Sheet, and private study folder.
+4. Check sharing on the Form, Sheet, and folder. Keep editor/file access
+   Restricted and responder access limited to your own account. Leave response
+   summaries and response editing off, and do not limit the Form to one response.
+   The script creates the Form unpublished. Review its branches, then publish it
+   from the Forms editor with the intended responder access; publishing the
+   responder form is not permission to share the Sheet or study folder.
+5. Open the responder link in Safari while signed into that account. Bookmark it
+   or add it to the Home Screen. Submit one entry and confirm it appears in the
+   response Sheet. Export and import that entry as below to verify the full path.
+
+Running `setupStudy` again in the same Apps Script project returns existing links,
+rather than creating duplicates. The first configuration and question identities
+are frozen in Script Properties. Do not delete those properties or edit the
+questions, anchors, branches, or response-history settings after collection
+starts. For new timezone, window, or caffeine settings, create a new Apps Script
+project and Form; keep the old Form, snapshots, and configuration for historical
+records. Altered target prompts or anchors require a code/protocol version change;
+the current importer supports the supplied prompts only. If setup fails
+before it finishes, inspect the account for partial artifacts before retrying.
+
+### Everyday use
+
+Choose the event and status. Completed entries require the selected 1–10 rating;
+skipped and missing entries bypass the rating. Optional context may be left blank.
+Record whether Google guidance was seen before the rating and whether it was
+acted on. Missing an event does not discard the other labels from that day.
+
+Leave the earlier-time field blank when describing your state at submission.
+Google's actual submission timestamp becomes `observed_at` and `captured_at`.
+For backfills, enter an explicit ISO timestamp with a UTC offset, such as
+`2024-11-03T01:30:00-08:00` for the second repeated hour in Los Angeles. Wake
+time is also optional and uses that format. A bare local time is rejected by the
+importer; it never guesses which DST occurrence you meant. An afternoon entry
+without wake time remains unanchored. There are no automatic reminders.
+
+Upload Google Health screenshots or exports to the study's private Drive folder.
+Use the `screenshots/` subfolder for images. Preserve the original file, capture
+time, period shown, and original/historical/reconstructed provenance in a companion
+note. A capture date is not proof an insight was available at prediction time.
+Drive stores these files; screenshot parsing and Google Health imports are not
+implemented. A connected Codex session may inspect authorized files on request,
+but there is no background Drive synchronization in this repository.
+
+### Export and import
+
+In the same Apps Script project, run `exportSnapshot` whenever you want to bring
+new check-ins into the local database. It writes a new JSON file into `snapshots/`
+and prints its link and response count, not health answers. Download it to a
+private directory outside Git, then run from the repository in PowerShell:
+
+```powershell
+$studyDirectory = Join-Path $env:LOCALAPPDATA 'AIHealthCoach'
+$studyDatabase = Join-Path $studyDirectory 'study.sqlite3'
+$studySnapshot = Join-Path $studyDirectory 'checkins.json' # Your downloaded snapshot.
+uv run ai-health-coach --import-form-snapshot $studySnapshot --database $studyDatabase
+```
+
+The command prints the snapshot hash and inserted/replayed counts. Re-running it
+does not duplicate rows or replace the original import time. One invalid or edited
+response rejects the entire snapshot. Errors do not echo answer text. Correct a
+mistake with a new submission and a note referring to the original; automatic
+correction reconciliation is not implemented.
+
+That correction path applies to valid entries whose meaning needs correcting.
+If a malformed response blocks import, preserve the snapshot and resolve the
+source error before proceeding; adding another response does not remove the bad
+one. Selective quarantine tooling is not implemented. Form validation checks
+timestamp syntax and note length; the importer additionally checks actual dates,
+time ordering, and configuration. Pilot backfills before relying on them.
+
+Snapshots use this project's versioned JSON contract, **not a native Google Health
+export or arbitrary Sheet CSV**. The exporter reads the Form's original response
+store so stable [response IDs and submission timestamps](https://developers.google.com/apps-script/reference/forms/form-response)
+survive locale formatting and repeated DST hours. The linked Sheet is a readable
+live view; editing it does not change imported Form responses.
+
+The database preserves exact snapshot bytes privately and assigns `available_at`
+to the first local import, conservatively preventing backfilled context from
+entering earlier predictions. Google submission time, event time, export time,
+and local import time remain distinct. Keep the model clock synchronized.
+
+For an offline demonstration, import the explicitly fictional fixture into a
+**separate** private database so synthetic rows do not enter your personal study:
+
+```powershell
+$demoDatabase = Join-Path $env:TEMP 'AIHealthCoach/forms-demo.sqlite3'
+uv run ai-health-coach --import-form-snapshot fixtures/synthetic/form-snapshot.json --database $demoDatabase
+```
+
+## Optional local demo
+
+The original Python check-in page remains available for development and comparison.
+Its [local setup guide](local-check-in-demo.md) retains desktop and private-network
+iPhone instructions. It is not required for the Google Forms collection route.
+
+## Google Health capture boundary
+
+The intended capture route is a desktop Android emulator running Google Health,
+but app compatibility and account sign-in have not been verified. Screenshot
+automation depends on that verification; manual screenshots remain an alternative.
+Neither check-in route accesses Google Health. Original screenshots belong
+in the private Drive capture folder or a separate private directory, with capture
+time, source, and original-versus-reconstructed provenance.
+The adapter and screenshot automation require inspecting the actual app and its
+artifacts first. Check-in collection can begin independently of that setup.
 
 ## Collection events
 
@@ -40,8 +172,8 @@ for a day to be usable.
 
 Exercise may be derived from device data when available. Otherwise record
 `none`, `light`, `moderate`, `hard`, or missing. Also capture caffeine
-after the configured cutoff, alcohol as `none`, `one`, or `two_or_more`,
-and unusual circumstances when known.
+at or after the explicitly configured study-local cutoff, alcohol as `none`,
+`one`, or `two_or_more`, and unusual circumstances when known.
 
 ## Label definitions
 
@@ -84,8 +216,9 @@ Every record preserves:
 - the local date and IANA timezone;
 - the interval or event being described;
 - `observed_at`, when the state applied;
-- `available_at`, when a source value became visible;
-- `captured_at`, when it was stored;
+- `available_at`, when the pipeline could first use a source value;
+- `captured_at`, when the source recorded it;
+- `imported_at`, when a Forms snapshot entered the local database;
 - capture method and schema version; and
 - whether it was on time, late, skipped, or missing.
 

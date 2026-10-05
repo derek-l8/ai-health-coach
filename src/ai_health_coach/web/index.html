@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Health check-in</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; background: #eef3f0; color: #18221d; }
+    body { margin: 0; }
+    main { max-width: 34rem; margin: auto; padding: 1rem; }
+    section { background: white; border: 1px solid #cad8d0; border-radius: 1rem;
+      padding: 1rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; }
+    p { line-height: 1.45; }
+    label { display: block; margin-top: .8rem; font-weight: 600; }
+    input, select, textarea, button { box-sizing: border-box; width: 100%;
+      min-height: 2.8rem; margin-top: .35rem; padding: .6rem; font: inherit;
+      border: 1px solid #8fa49a; border-radius: .6rem; }
+    input[type="checkbox"] { width: auto; min-height: 0; }
+    button { background: #176b4b; color: white; font-weight: 600; }
+    button:disabled { opacity: .5; }
+    .muted { color: #52645b; font-size: .9rem; }
+    #result { white-space: pre-wrap; overflow-wrap: anywhere; }
+    fieldset { border: 0; margin: 0; padding: 0; }
+    [hidden] { display: none; }
+    @media (prefers-color-scheme: dark) {
+      :root { background: #101713; color: #eef5f1; }
+      section { background: #17231d; border-color: #344b40; }
+      input, select, textarea { background: #101713; color: #eef5f1; }
+      .muted { color: #b4c5bc; }
+    }
+  </style>
+  <script src="/app.js" type="module"></script>
+</head>
+<body><main>
+  <section>
+    <h1>Health check-in</h1>
+    <p>Save a rating or record a missed check-in. Notes and context are optional.</p>
+    <p id="configuration" class="muted">Connecting…</p>
+  </section>
+  <form id="check-in">
+    <fieldset id="entry" disabled>
+    <section>
+      <h2>When</h2>
+      <label>Check-in
+        <select name="event">
+          <option value="wake">Morning readiness</option>
+          <option value="afternoon">Afternoon energy</option>
+          <option value="day_close">Overall energy</option>
+        </select>
+      </label>
+      <label>Time this rating describes
+        <input name="observed_at" type="datetime-local" required>
+      </label>
+      <label id="observed-choice" hidden>Which occurrence of this time?
+        <select name="observed_occurrence"></select>
+      </label>
+      <p id="offset" class="muted"></p>
+      <label>Actual wake time (optional)
+        <input name="wake_at" type="datetime-local">
+      </label>
+      <label id="wake-choice" hidden>Which occurrence of the wake time?
+        <select name="wake_occurrence"></select>
+      </label>
+      <p id="wake-offset" class="muted"></p>
+      <label><input name="reported_late" type="checkbox"> I'm recording this late</label>
+    </section>
+    <section>
+      <h2 id="prompt">How capable do I feel of handling the demands planned for today?</h2>
+      <p id="anchors" class="muted"></p>
+      <label>Entry status
+        <select name="status">
+          <option value="completed">Rate this check-in</option>
+          <option value="skipped">Skipped intentionally</option>
+          <option value="missing">Rating not captured</option>
+        </select>
+      </label>
+      <label id="rating-label">Rating
+        <select name="rating" required>
+          <option value="">Choose a rating</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option>
+          <option>5</option><option>6</option><option>7</option><option>8</option>
+          <option>9</option><option>10</option>
+        </select>
+      </label>
+      <label>Google guidance seen before this rating?
+        <select name="google_seen">
+          <option value="unsure">Unsure</option><option value="no">No</option>
+          <option value="yes">Yes</option>
+        </select>
+      </label>
+      <label>Recommendation acted on?
+        <select name="acted_on">
+          <option value="unknown">Unknown</option><option value="no">No</option>
+          <option value="partly">Partly</option><option value="yes">Yes</option>
+        </select>
+      </label>
+    </section>
+    <section>
+      <h2>Optional context</h2>
+      <label>Academic stress <select name="academic_stress">
+        <option value="">Not captured</option><option value="low">Low</option>
+        <option value="medium">Medium</option><option value="high">High</option>
+      </select></label>
+      <label>Exercise <select name="exercise_level">
+        <option value="">Not captured</option><option value="none">None</option>
+        <option value="light">Light</option><option value="moderate">Moderate</option>
+        <option value="hard">Hard</option>
+      </select></label>
+      <label>Illness <select name="illness">
+        <option value="">Not captured</option><option value="false">No</option>
+        <option value="true">Yes</option>
+      </select></label>
+      <label>Exam or deadline within 48 hours <select name="deadline_within_48h">
+        <option value="">Not captured</option><option value="false">No</option>
+        <option value="true">Yes</option>
+      </select></label>
+      <details>
+        <summary>More context (optional)</summary>
+        <label><span id="caffeine-prompt">Caffeine cutoff not configured</span>
+        <select name="caffeine_after_cutoff" disabled>
+          <option value="">Not captured</option><option value="false">No</option>
+          <option value="true">Yes</option>
+        </select></label>
+        <label>Alcohol <select name="alcohol">
+          <option value="">Not captured</option><option value="none">None</option>
+          <option value="one">One drink</option><option value="two_or_more">Two or more</option>
+        </select></label>
+        <label>Medication changed or missed <select name="medication_changed_or_missed">
+          <option value="">Not captured</option><option value="false">No</option>
+          <option value="true">Yes</option>
+        </select></label>
+        <label>Unusual sleep circumstances <select name="unusual_sleep">
+          <option value="">Not captured</option><option value="false">No</option>
+          <option value="true">Yes</option>
+        </select></label>
+      </details>
+      <label>Short note <textarea name="note" maxlength="2000" rows="3"></textarea></label>
+      <button id="submit" type="submit" disabled>Save check-in</button>
+    </section>
+    </fieldset>
+  </form>
+  <p id="result" role="status" aria-live="polite"></p>
+</main></body>
+</html>

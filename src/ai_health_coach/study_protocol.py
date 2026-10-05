@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from enum import StrEnum
@@ -139,10 +140,17 @@ class EventConfiguration:
     version: str
     timezone: str
     windows: tuple[EventWindowConfig, ...]
+    caffeine_cutoff_local_time: str | None = None
 
     def __post_init__(self) -> None:
         _non_empty(self.version, "version")
         _timezone(self.timezone)
+        cutoff = self.caffeine_cutoff_local_time
+        if cutoff is not None and (
+            not isinstance(cutoff, str)
+            or re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", cutoff) is None
+        ):
+            raise StudyValidationError("caffeine cutoff must be HH:MM in 24-hour time")
         actual = [window.event_type for window in self.windows]
         if len(actual) != len(set(actual)):
             raise StudyValidationError("event windows must be unique by event type")
@@ -154,7 +162,7 @@ class EventConfiguration:
         """Return defaults anchored to actual wake, never a fixed hour."""
 
         return cls(
-            version="event-config-1.0.0",
+            version="event-config-1.1.0",
             timezone=timezone,
             windows=(
                 EventWindowConfig(EventType.WAKE, TriggerKind.MANUAL),
@@ -193,7 +201,7 @@ class PersonalLabel:
         _matches_zone(self.captured_at, zone, "captured_at")
         if self.observed_at.astimezone(zone).date() != self.local_date:
             raise StudyValidationError("local_date must match observed_at")
-        if self.captured_at < self.observed_at:
+        if self.captured_at.timestamp() < self.observed_at.timestamp():
             raise StudyValidationError("captured_at cannot precede observed_at")
         if self.status is RecordStatus.COMPLETED:
             if isinstance(self.rating, bool) or not isinstance(self.rating, int):
