@@ -12,6 +12,9 @@ Implemented:
 - deterministic Efficiency, Recovery, and predicted Energy heuristics;
 - event-relative configuration and validated label, context, exposure, and Coach
   insight records;
+- transactional private check-in storage and a phone-friendly capture service;
+- Google Forms setup/export and atomic snapshot import, tested offline with
+  fictional data and mocked Google services;
 - format-neutral import-adapter interfaces;
 - a deterministic 60-day CSV and synthetic Coach fixtures;
 - historical-median, rolling-average, and Google-only comparison arms;
@@ -19,18 +22,22 @@ Implemented:
 - rolling-origin splits, leakage rejection, and evaluation metrics; and
 - a static responsive phone-form prototype.
 
-These components use synthetic data. No current result establishes personal or
-medical usefulness.
+Validation uses synthetic data. The check-in service can store private entries;
+no real study results establish personal or medical usefulness.
 
 ## Next: one real capture vertical slice
 
-1. Inspect an actual private Google account export.
-2. Document its fields, timing, units, provenance, and missingness.
-3. Implement one narrow adapter with a fictional public fixture.
-4. Connect event-relative labels and exposure records to private persistence.
-5. Test one phone-friendly submission path without making the public repository a
-   data destination.
-6. Capture Premium output manually when no verified machine-readable path exists.
+1. Run and authorize the Forms setup script, verify private permissions, and pilot
+   an iPhone entry through the response Sheet, JSON export, and local importer.
+2. Audit real check-in timing, missingness, and prompt usability before accumulating
+   training labels. Keep the local server optional.
+3. Inspect an actual private Google Health account export and document its fields,
+   timing, units, provenance, and missingness.
+4. Implement one narrow metrics adapter with a fictional public fixture.
+5. Set up the desktop emulator capture path and inspect original Google Health
+   metrics and screenshots from the signed-in account.
+6. Implement a narrow screenshot/artifact capture adapter after inspecting actual
+   inputs; keep originals private and reproduce public fixtures fictionally.
 
 Account exports, structured entry, screenshots, emulator-assisted capture, and a
 future verified API remain replaceable acquisition paths.

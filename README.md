@@ -22,13 +22,14 @@ feature.
 
 | Implemented | Not implemented |
 | --- | --- |
-| Synthetic Google-shaped ingestion and canonical SQLite storage | Live Google or Fitbit collection |
+| Synthetic Google-shaped ingestion and canonical SQLite storage | Live Google Health or Fitbit metrics/insight collection |
 | Provenance, missingness, DST, conflict, and replay safeguards | Verified Takeout or Premium import formats |
 | Deterministic sleep-score foundation | A trained personal or hybrid model |
-| Versioned study records and event-relative configuration | Persistent real check-ins |
+| Private SQLite check-ins and event-relative configuration | Automatic reminders |
+| Google Forms setup/export script and validated snapshot import (offline tested) | Real-account Form setup and iPhone pilot verification |
 | Deterministic 60-day CSV fixture and Coach insight fixtures | Real personal results |
 | Baselines, model interfaces, rolling-origin evaluation, and leakage tests | Production phone service or dashboard |
-| Static responsive phone-form prototype | Medical or diagnostic functionality |
+| Responsive check-in service and standalone synthetic prototype | Medical or diagnostic functionality |
 
 The earlier Efficiency, Recovery, and predicted Energy heuristics remain
 engineering baselines and possible model features. They are not validated health
@@ -49,33 +50,105 @@ The detailed rules live in the
 [data-collection protocol](docs/data-collection-protocol.md) and
 [evaluation protocol](docs/evaluation-protocol.md).
 
-## Run the synthetic system
+## Quick start
+
+Run the project from a source checkout. It is not currently published as an
+installable release.
 
 Requirements:
 
-- Python 3.14 or newer
+- Python 3.14 (the currently tested version)
 - [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
 
-CI runs the full validation suite on Python 3.14.
-
 ```bash
+git clone https://github.com/derek-l8/ai-health-coach.git
+cd ai-health-coach
 uv sync --dev --frozen
 uv run ai-health-coach --synthetic-smoke
+```
+
+The smoke check should print:
+
+```json
+{"application": "ai-health-coach", "mode": "synthetic-smoke", "private_data_accessed": false, "version": "0.1.0"}
+```
+
+## Explore the synthetic system
+
+These commands score a fictional night, evaluate the synthetic 60-day study,
+and write a generated copy of the study dataset to the ignored `data/`
+directory:
+
+```bash
 uv run ai-health-coach --synthetic-score-night
 uv run ai-health-coach --synthetic-evaluate
-uv run ai-health-coach --write-synthetic-study study.csv
-uv run pytest
+uv run ai-health-coach --write-synthetic-study data/synthetic-study.csv
 ```
 
 The checked-in [60-day CSV](fixtures/synthetic/longitudinal-60-days.csv) is
-deterministic and explicitly fictional. The standalone
-[phone-form prototype](prototype/phone-form/index.html) submits nowhere and keeps
-its synthetic entry only in the browser tab.
+deterministic and explicitly fictional. After cloning, open the
+[phone-form prototype](prototype/phone-form/index.html) directly in a browser.
+It submits nowhere and keeps its synthetic entry only in the browser tab.
+
+## Collect personal check-ins
+
+The primary route is a **Google Form linked to a private Google Sheet**, with
+screenshots and exports kept in a private Drive folder. The iPhone responder link
+does not require a running laptop, local certificates, or firewall changes.
+
+Follow the [one-time Google setup and collection guide](docs/data-collection-protocol.md#primary-route-google-forms-and-drive).
+The repository's Apps Script creates the collection resources when you run and
+authorize it in your account. No live Form has been created or verified yet.
+
+Export a response snapshot using that script, download it outside Git, and import
+it from the repository directory in PowerShell:
+
+```powershell
+$studyDatabase = Join-Path $env:LOCALAPPDATA 'AIHealthCoach/study.sqlite3'
+$studySnapshot = Join-Path $env:LOCALAPPDATA 'AIHealthCoach/checkins.json'
+uv run ai-health-coach --import-form-snapshot $studySnapshot --database $studyDatabase
+```
+
+The importer validates all responses atomically, preserves source IDs and timing,
+and rejects edited history. Google Health screenshot parsing is still planned;
+Drive access is not automatic synchronization or account capture.
+
+The original [local check-in service](docs/local-check-in-demo.md) remains an
+optional development demo. Neither route assumes a fixed wake hour or requires
+complete participation.
+
+## Validate changes
+
+CI runs formatting, linting, and tests on Python 3.14 and Node.js 24. Install Node
+as well as Python/uv for the complete suite, including the exporter/importer
+contract check:
+
+```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run pytest
+```
+
+Browser time-conversion and mocked Apps Script tests also run in CI:
+
+```bash
+node --test tests/web/time.test.mjs tests/web/forms.test.mjs
+```
+
+## Update an existing checkout
+
+Check `git status` first and commit or stash local changes before updating.
+
+```bash
+git pull --ff-only
+uv sync --dev --frozen
+```
 
 ## Repository map
 
 ```text
-src/ai_health_coach/       validated records, ingestion, scoring, evaluation
+src/ai_health_coach/       records, check-in service, ingestion, scoring, evaluation
+scripts/                   Google Forms setup and snapshot export
 tests/                     synthetic regression and leakage tests
 fixtures/synthetic/        public fictional inputs and Coach examples
 prototype/phone-form/      static mobile-form demonstration

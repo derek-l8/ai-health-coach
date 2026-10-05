@@ -8,9 +8,10 @@ readiness and energy.
 
 The repository currently implements synthetic ingestion, canonical storage,
 heuristic scoring, validated study records, deterministic fixtures, experiment
-interfaces, rolling-origin evaluation, and a static phone-form prototype. It does
-not implement live collection, private study persistence, trained personal
-models, or a production service.
+interfaces, rolling-origin evaluation, Google Forms setup/export and private snapshot
+import, an optional local check-in service, and a static
+synthetic phone-form prototype. It does not implement live Google Health collection,
+trained personal models, or public hosting.
 
 ## Logical flow
 
@@ -54,8 +55,30 @@ separate, versioned baselines or candidate features.
 ### Study records
 
 `study_protocol.py` defines event-relative configuration and validated personal
-labels, context, provider exposure, and Coach insight provenance. A later
-persistence layer should store these records without changing their meanings.
+labels, context, provider exposure, and Coach insight provenance. `checkins.py`
+persists check-in envelopes and configuration snapshots transactionally, with
+immutable records and exact-retry handling. Coach insight storage remains planned.
+
+The primary daily capture route is Google Forms, linked to a private response
+Sheet. `scripts/google-forms-study.js` creates an unpublished Form and private
+Drive folders when the user runs and authorizes it. It freezes configuration and
+item identities, and exports the native Form response store into a repo-defined
+JSON snapshot. Google-side execution and iPhone access still require a real pilot;
+tests use mocked services, not a live account.
+
+`forms_import.py` validates those snapshots and appends to `CheckInStore` in one
+transaction. Stable Form/response IDs identify retries. Exact source bytes and
+configuration bindings remain private and immutable. Submission time records
+source capture; first local import determines conservative pipeline availability.
+The response Sheet is a live view, not a CSV ingestion contract. No background
+Drive sync or screenshot parsing is implemented.
+
+`checkin_server.py` serves the packaged mobile page and validates submissions.
+It binds loopback by default. An explicit private IPv4 address requires HTTPS.
+Each running session has a random bearer token; API requests check both the token
+and browser origin. Host validation, bounded JSON requests, fixed asset routes,
+no-store responses, and suppressed request logs reduce the capture service's
+exposure. It has no private-history endpoint or provider connection.
 
 ### Capture adapters
 
@@ -117,6 +140,11 @@ The public checkout contains code and fictional fixtures only. Real exports,
 screenshots, labels, credentials, databases, trained artifacts, and row-level
 results remain in a separate private location.
 
-A real form, emulator, OAuth integration, hosted service, or AI provider creates
-a new trust boundary requiring explicit configuration and review. The static form
-in this repository proves layout only, not production security.
+Google Forms uses Google account permissions and cloud storage. The user reviews
+scopes and responder access before using the Form. Code changes do not authorize
+publishing health data. Optional local phone-network access requires a certificate
+trusted by the phone and deliberate network configuration. The service is a
+single-user collection tool, not a public
+deployment. Emulator capture, OAuth integration, hosted services, or an AI provider
+need their own configuration and review. The standalone synthetic form demonstrates
+layout only.

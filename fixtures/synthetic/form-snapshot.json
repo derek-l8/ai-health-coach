@@ -1,0 +1,23 @@
+{
+  "kind": "google_forms_checkins",
+  "schema_version": 1,
+  "form_id": "synthetic-form-only",
+  "exported_at": "2024-11-03T18:00:00.000Z",
+  "configuration": {
+    "version": "forms-config-1.0.0",
+    "timezone": "America/Los_Angeles",
+    "caffeine_cutoff_local_time": null,
+    "windows": [
+      {"event": "wake", "trigger": "manual", "opens_after_wake_hours": null, "closes_after_wake_hours": null},
+      {"event": "afternoon", "trigger": "relative_to_wake", "opens_after_wake_hours": 5, "closes_after_wake_hours": 9},
+      {"event": "day_close", "trigger": "manual", "opens_after_wake_hours": null, "closes_after_wake_hours": null}
+    ]
+  },
+  "responses": [
+    {
+      "response_id": "synthetic-response-1",
+      "submitted_at": "2024-11-03T09:30:00.000Z",
+      "answers": {"event": "Morning readiness", "status": "Completed", "rating": "7", "observed_at": "", "wake_at": "", "note": "", "google_seen": "No", "acted_on": "Unknown"}
+    }
+  ]
+}

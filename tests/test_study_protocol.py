@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 
 import pytest
@@ -33,6 +34,26 @@ def test_default_configuration_has_no_assumed_wake_clock_time() -> None:
     assert windows[EventType.AFTERNOON].opens_after_wake == timedelta(hours=5)
     assert windows[EventType.AFTERNOON].closes_after_wake == timedelta(hours=9)
     assert windows[EventType.DAY_CLOSE].trigger is TriggerKind.MANUAL
+    assert configuration.caffeine_cutoff_local_time is None
+
+
+@pytest.mark.parametrize("cutoff", ["00:00", "14:00", "23:59"])
+def test_caffeine_cutoff_is_explicit_study_local_time(cutoff):
+    config = replace(
+        EventConfiguration.flexible_default("UTC"), caffeine_cutoff_local_time=cutoff
+    )
+    assert config.caffeine_cutoff_local_time == cutoff
+
+
+@pytest.mark.parametrize(
+    "cutoff", ["24:00", "9:00", "14:60", "14:00:00", "noon", True, 14]
+)
+def test_caffeine_cutoff_rejects_ambiguous_or_invalid_values(cutoff):
+    with pytest.raises(StudyValidationError, match="HH:MM"):
+        replace(
+            EventConfiguration.flexible_default("UTC"),
+            caffeine_cutoff_local_time=cutoff,
+        )
 
 
 def test_completed_and_skipped_labels_preserve_missingness() -> None:

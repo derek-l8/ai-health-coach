@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 from datetime import date, datetime
-from pathlib import Path
+from importlib.resources import files
 
 import pytest
 
@@ -31,7 +31,9 @@ from ai_health_coach.storage import (
     ObservationStore,
 )
 
-NIGHT_FIXTURE_PATH = Path("fixtures/synthetic/sleep-night-observations.json")
+NIGHT_FIXTURE_PATH = files("ai_health_coach").joinpath(
+    "fixtures", "sleep-night-observations.json"
+)
 
 WINDOW_START = datetime.fromisoformat("2024-03-09T23:00:00-05:00")
 WINDOW_END = datetime.fromisoformat("2024-03-10T07:00:00-04:00")
