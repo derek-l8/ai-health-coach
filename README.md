@@ -60,6 +60,8 @@ Requirements:
 - Python 3.14 (the currently tested version)
 - [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
 
+CI runs the full validation suite on Python 3.14.
+
 ```bash
 git clone https://github.com/derek-l8/ai-health-coach.git
 cd ai-health-coach
